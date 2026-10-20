@@ -24,9 +24,8 @@ libvirgl = static_library(
   dependencies : [dep_libdrm, idep_mesautil, idep_xmlconfig, idep_nir],
 )
 
-virgl_deps = [libvirgl]
+virgl_deps = [libvirgl, libvirgldrm]
 if not with_platform_windows
-  virgl_deps += libvirgldrm
   virgl_deps += libvirglvtest
 endif
 

@@ -47,6 +47,8 @@ typedef unsigned int drm_handle_t;
 #include <sys/types.h>
 #if defined(__GNU__)
 #include <sys/ioctl.h>
+#elif defined(_WIN32)
+#include "linuz/ioccom.h"
 #else
 #include <sys/ioccom.h>
 #endif

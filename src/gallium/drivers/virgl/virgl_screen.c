@@ -774,8 +774,9 @@ static void virgl_flush_frontbuffer(struct pipe_screen *screen,
    struct virgl_context *vctx = virgl_context(ctx);
 
    if (vws->flush_frontbuffer) {
-      virgl_flush_eq(vctx, vctx, NULL);
-      vws->flush_frontbuffer(vws, vctx->cbuf, vres->hw_res, level, layer, winsys_drawable_handle,
+      if (vctx)
+         virgl_flush_eq(vctx, vctx, NULL);
+      vws->flush_frontbuffer(vws, vctx ? vctx->cbuf : NULL, vres->hw_res, level, layer, winsys_drawable_handle,
                              nboxes == 1 ? sub_box : NULL);
    }
 }

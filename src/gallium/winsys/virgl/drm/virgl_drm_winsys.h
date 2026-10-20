@@ -23,6 +23,9 @@
 #ifndef VIRGL_DRM_WINSYS_H
 #define VIRGL_DRM_WINSYS_H
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include <stdint.h>
 #include "util/u_thread.h"
 #include "pipe/p_state.h"
@@ -47,6 +50,13 @@ struct virgl_hw_res {
    uint32_t bind;
    uint32_t flags;
    uint32_t flink_name;
+
+#ifdef _WIN32
+   uint32_t width;
+   uint32_t height;
+   enum pipe_format format;
+   BITMAPINFO bitmap;
+#endif
 
    /* We are not holding a lock when releasing references of the
     * resource (intentionally) so we might start destroying it in one thread
@@ -98,7 +108,11 @@ struct param params[] = { PARAM(VIRTGPU_PARAM_3D_FEATURES),
 struct virgl_drm_winsys
 {
    struct virgl_winsys base;
+#ifdef _WIN32
+   HANDLE fd;
+#else
    int fd;
+#endif
    struct virgl_resource_cache cache;
    mtx_t mutex;
 
@@ -111,7 +125,11 @@ struct virgl_drm_winsys
 struct virgl_drm_fence {
    struct pipe_reference reference;
    bool external;
+#ifdef _WIN32
+   HANDLE fd;
+#else
    int fd;
+#endif
    struct virgl_hw_res *hw_res;
 };
 
@@ -120,7 +138,11 @@ struct virgl_drm_cmd_buf {
 
    uint32_t *buf;
 
+#ifdef _WIN32
+   HANDLE in_fence_fd;
+#else
    int in_fence_fd;
+#endif
 
    unsigned nres;
    unsigned cres;

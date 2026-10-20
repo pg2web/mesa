@@ -63,6 +63,11 @@
 #include "zink/zink_public.h"
 #endif
 
+#if defined(GALLIUM_VIRGL) && defined(_WIN32)
+#include "virgl/drm/virgl_drm_public.h"
+#include "../../winsys/virgl/lib/vgpu_api.h"
+#endif
+
 #ifdef GALLIUM_LLVMPIPE
 static bool use_llvmpipe = false;
 #endif
@@ -71,6 +76,10 @@ static bool use_d3d12 = false;
 #endif
 #ifdef GALLIUM_ZINK
 static bool use_zink = false;
+#endif
+#if defined(GALLIUM_VIRGL) && defined(_WIN32)
+static bool use_virgl = false;
+static HANDLE vgpu_handle = NULL;
 #endif
 
 static const char *created_driver_name = NULL;
@@ -106,6 +115,19 @@ wgl_screen_create_by_name(HDC hDC, const char* driver, struct sw_winsys *winsys)
       screen = softpipe_create_screen(winsys);
    }
 #endif
+#if defined(GALLIUM_VIRGL) && defined(_WIN32)
+   if (strcmp(driver, "virgl") == 0) {
+      vgpu_handle = GetHandleFromVgpu(hDC);
+      if (vgpu_handle) {
+         screen = virgl_drm_screen_create(vgpu_handle, NULL, winsys);
+         VgpuDebugLog("wgl: virgl screen %s\n", screen ? "created" : "FAILED");
+         if (screen)
+            use_virgl = true;
+         else
+            vgpu_handle = NULL;
+      }
+   }
+#endif
 
    return screen;
 }
@@ -122,6 +144,9 @@ wgl_screen_create(HDC hDC)
 
    const char *const drivers[] = {
       debug_get_option("GALLIUM_DRIVER", ""),
+#if defined(GALLIUM_VIRGL) && defined(_WIN32)
+      sw_only ? "" : "virgl",
+#endif
 #ifdef GALLIUM_D3D12
       sw_only ? "" : "d3d12",
 #endif
@@ -198,6 +223,16 @@ wgl_present(struct pipe_screen *screen,
    }
 #endif
 
+#if defined(GALLIUM_VIRGL) && defined(_WIN32)
+   if (use_virgl) {
+      static unsigned calls;
+      if ((++calls % 300) == 1)
+         VgpuDebugLog("wgl_present: call %u ctx=%p res=%p hdc=%p\n", calls, ctx, res, hDC);
+      screen->flush_frontbuffer(screen, ctx, res, 0, 0, hDC, 0, NULL);
+      return;
+   }
+#endif
+
 #ifdef GALLIUM_SOFTPIPE
    winsys = softpipe_screen(screen)->winsys,
    dt = softpipe_resource(res)->dt,
@@ -219,7 +254,6 @@ wgl_get_adapter_luid(struct pipe_screen* screen,
    return true;
 }
 #endif
-
 
 static struct stw_winsys_framebuffer *
 wgl_create_framebuffer(struct pipe_screen *screen,

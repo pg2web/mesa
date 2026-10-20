@@ -24,7 +24,14 @@
 #define VIRGL_DRM_PUBLIC_H
 
 struct pipe_screen;
+struct pipe_screen_config;
 
+#ifdef _WIN32
+#include <windows.h>
+struct sw_winsys;
+struct pipe_screen *virgl_drm_screen_create(HANDLE fd, const struct pipe_screen_config *config, struct sw_winsys *winsys);
+#else
 struct pipe_screen *virgl_drm_screen_create(int fd, const struct pipe_screen_config *config);
+#endif
 
 #endif

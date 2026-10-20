@@ -87,10 +87,12 @@ static bool virgl_can_readback_from_scanout(struct virgl_screen *vs,
 }
 
 static bool virgl_can_use_staging(struct virgl_screen *vs,
-                                  struct virgl_resource *res)
+                                  struct virgl_resource *res,
+                                  int bind)
 {
    return (vs->caps.caps.v2.capability_bits_v2 & VIRGL_CAP_V2_COPY_TRANSFER_BOTH_DIRECTIONS) &&
-         (res->b.target != PIPE_BUFFER);
+         (res->b.target != PIPE_BUFFER) &&
+         !(bind & VIRGL_BIND_DISPLAY_TARGET);
 }
 
 static bool is_stencil_array(struct virgl_resource *res)
@@ -103,7 +105,7 @@ static bool virgl_can_copy_transfer_from_host(struct virgl_screen *vs,
                                               struct virgl_resource *res,
                                               int bind)
 {
-   return virgl_can_use_staging(vs, res) &&
+   return virgl_can_use_staging(vs, res, bind) &&
          !is_stencil_array(res) &&
          !(bind & VIRGL_BIND_SHARED) &&
          virgl_has_readback_format(&vs->base, pipe_to_virgl_format(res->b.format), false) &&
@@ -984,6 +986,13 @@ static void virgl_buffer_subdata(struct pipe_context *pipe,
    }
 
    u_default_buffer_subdata(pipe, resource, usage, offset, size, data);
+
+#ifdef _WIN32
+   struct virgl_winsys *vws = virgl_screen(vctx->base.screen)->vws;
+   if (!vws->supports_coherent) {
+      virgl_flush_eq(vctx, NULL, NULL);
+   }
+#endif
 }
 
 void virgl_init_context_resource_functions(struct pipe_context *ctx)

@@ -88,6 +88,10 @@ struct drm_virtgpu_execbuffer {
 	__u32 num_out_syncobjs;
 	__u64 in_syncobjs;
 	__u64 out_syncobjs;
+#ifdef _WIN32
+	void *in_fence_fd;
+	void *out_fence_fd;
+#endif
 };
 
 #define VIRTGPU_PARAM_3D_FEATURES 1 /* do we have 3D features in the hw */
